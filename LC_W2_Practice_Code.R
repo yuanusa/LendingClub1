@@ -91,9 +91,14 @@ which(num.value == dim(loan)[1])
 #loan$verification_status <- ifelse(loan$verification_status_joint != "",
 #                                   loan$verification_status_joint, loan$verification_status)
 summary(loan$dti_joint)
-with(subset(loan, is.na(dti_joint)), table(application_type))
-loan$dti <- ifelse(!is.na(loan$dti_joint), loan$dti_joint, loan$dti)
-loan$annual_inc <- ifelse(!is.na(loan$annual_inc_joint), loan$annual_inc_joint, loan$annual_inc)
+with(subset(loan, is.na(dti_joint)), table(application_type)) # verify, too see whats going on 
+###subset(loan, is.na(dti_joint) & application_type ='JOINT') ### too see whats going on about the two joint
+###subset(loan, is.na(dti_joint) & application_type ='JOINT')$dti ### to check dti
+###subset(loan, is.na(dti_joint) & application_type ='JOINT')$dti_joint ### to check dti_joint
+
+
+loan$dti <- ifelse(!is.na(loan$dti_joint), loan$dti_joint, loan$dti) #replace dti with dti_joint
+loan$annual_inc <- ifelse(!is.na(loan$annual_inc_joint), loan$annual_inc_joint, loan$annual_inc) 
 loan$home_ownership <- ifelse(loan$home_ownership %in% c('ANY', 'NONE', 'OTHER'), 'OTHER',
                               loan$home_ownership)
 int_state <- by(loan, loan$addr_state, function(x) {
@@ -105,9 +110,19 @@ loan$state_mean_int <-
                        'lowmedium', ifelse(loan$addr_state %in% names(int_state)[which(int_state <= quantile(int_state, 0.75))], 
                                            'mediumhigh', 'high')))
 
-num.NA <- sort(sapply(loan, function(x) { sum(is.na(x))} ), decreasing = TRUE)
-remain.col <- names(num.NA)[which(num.NA <= 0.8 * dim(loan)[1])]
+num.NA <- sort(sapply(loan, function(x) { sum(is.na(x))} ), decreasing = TRUE)  #see how much value is missing value
+remain.col <- names(num.NA)[which(num.NA <= 0.8 * dim(loan)[1])]    # git ride of col NA is over 80% all data
 loan <- loan[, remain.col]
+### package library 'mice'
+### table(loan$addr_state)
+### length(unique(loan$addr_state)) 
+### int_state <- by(loan, loan$addr_state, function(x) {
+###                return(mean(x$int_rate))})
+### head(int_state)
+### loan$state_mean_int <-
+###ifelse(loan$addr_state %in% name(int_state)[which(int_state <- quantile(int_state, 0.25))],'low',
+###  ifelse(loan$addr_state %in% name(int_state)[which(int_state <- quantile(int_state, 0.5))], 'lowmedium'
+###    ifelse(loan$addr_state %in% name(int_state)[which(int_state <- quantile(int_state, 0.75))],'mediumhigh', 'high'  )
 
 library(zoo)
 loan$issue_d_1 <- as.Date(as.yearmon(loan$issue_d, "%b-%Y"))
@@ -118,21 +133,30 @@ plot(int.by.year)
 int.by.mon <- by(loan, loan$issue_mon, function(x){return(mean(x$int_rate))})
 plot(int.by.mon)
 
+
+
+
 # split data into train and test for model performance
-set.seed(1)
-train.ind <- sample(1:dim(loan)[1], 0.7 * dim(loan)[1])
+### use R to regression 
+set.seed(1)      ### want to random but still reproduceable
+train.ind <- sample(1:dim(loan)[1], 0.7 * dim(loan)[1])       ### choose 70% to be training data
 train <- loan[train.ind, ]
 test <- loan[-train.ind, ]
 
-mod1 <- lm(int_rate ~ addr_state + home_ownership + annual_inc + dti +
-             + term + loan_amnt + total_acc + tot_cur_bal + open_acc,
+mod1 <- lm(int_rate ~ addr_state + home_ownership + annual_inc + dti +    ###mod1=model 1, lm=linear r
+             + term + loan_amnt + total_acc + tot_cur_bal + open_acc,     ### try to use LR model
            data = train)
 summary(mod1)
 
-mod2 <- lm(int_rate ~ state_mean_int + home_ownership + annual_inc + dti +
-             + term + loan_amnt + total_acc + tot_cur_bal + open_acc,
+mod2 <- lm(int_rate ~ state_mean_int + home_ownership + annual_inc + dti +   ### try to use state_mean_int
+             + term + loan_amnt + total_acc + tot_cur_bal + open_acc,        ### model is much faster
            data = train)
 summary(mod2)
+
+### campare mod1 vs mod2 adjusted R^2 0.213 vs 0.2125
+
+
+
 
 train.sub <- train[, c('int_rate', 'state_mean_int', 'home_ownership', 'annual_inc', 'dti',
                        'term', 'loan_amnt', 'total_acc', 'tot_cur_bal', 'open_acc')]
