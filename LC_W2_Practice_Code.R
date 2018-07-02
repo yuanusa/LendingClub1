@@ -3,6 +3,7 @@
 # r stands for generating random variable following dist
 rnorm(n = 10)
 plot(density(rnorm(n=100000)))
+#####plot(density(log(rlnorm(n=100000))))
 dnorm(x = 0) # returns pdf
 pnorm(q = 0) # returns cdf
 qnorm(p = 0.975) # returns z score for type 1 error 0.05; qnorm(p = 0.5)  
@@ -24,6 +25,8 @@ plnorm()
 qlnorm()
 rlnorm()
 
+
+
 # Back to our data
 loan <- read.csv("loan.csv", stringsAsFactors = FALSE)
 loanT <- loan
@@ -32,7 +35,7 @@ loanT <- loan
 # t.test(x, y = NULL, alternative = c("two.sided", "less", "greater"), 
 # mu = 0, paired = FALSE, var.equal = FALSE, conf.level = 0.95, ...)
 # Welch t-test (var.equal = FALSE) and student t-test(var.equal = TRUE)
-t.test(int_rate ~ term, data = loan)
+t.test(int_rate ~ term, data = loan) 
 
 # How to calculate the stats by hand
 short_term <- subset(loan, term == ' 36 months')
@@ -43,11 +46,14 @@ t.score <- (mean(short_term$int_rate) - mean(long_term$int_rate)) / stderr
 # df follows complicated formula in slide (could be approximately in t.test).
 p.val <- 2 * pt(t.score, df = 467040)
 
-# understand chi-square test
+# understand chi-squar e test
 # Check if grade has same distribution in short term and long term loans,
 # what's null hypo and alternative hypo here?
 round(with(loan, table(term, grade)) / as.numeric(table(loan$term)), 2)
 with(loan, chisq.test(grade, term))
+##### with(loan, table(term, grade))
+##### table(loan$term, loan$grade)
+
 # p value
 1 - pchisq(176070, df=6)
 
