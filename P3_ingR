@@ -2,7 +2,7 @@
 # res = actual - fitted
 head(mod2$res)
 # MSE:
-sqrt(sum(mod2$res^2)/(dim(train.sub)[1] - 14)) # dim(train.sub)[1] - 14 = 621151 degree of freedom
+sqrt(sum(mod2$res^2)/(dim(train.sub)[1] - 1 - 13)) # dim(train.sub)[1] - 14 = 621151 degree of freedom
 
 # R square: 1 - sum_square_residual / sum_square_total
 1 - sum(mod2$res^2)/sum((train.sub$int_rate - mean(train.sub$int_rate))^2)
@@ -24,6 +24,9 @@ head(sort(mod2$res))
 mod2$res[which.min(mod2$res)]
 mod2$res[which.max(mod2$res)]
 plot(mod2$fit, mod2$res, xlab = 'Fitted', ylab = 'residual')
+
+### plot (density(train.sub$annual_inc))
+### plot (density(log(train.sub$annual_inc)))  ### use login to change sharpe to normal standard
 
 # See data points with negative fitted value, we should not predict negative interest rate
 mod2_1 <- lm(log(int_rate) ~ state_mean_int + home_ownership + annual_inc + dti +
@@ -57,10 +60,13 @@ library(glmnet)
 # http://stackoverflow.com/questions/17887747/how-does-glmnets-standardize-argument-handle-dummy-variables
 
 ind = train.sub[, -1]
+head(train.sub)
 ind <- model.matrix( ~., ind)
+head(ind)
 dep <- train.sub[, 1]
 fit1 <- glmnet(x=ind, y=dep) # default is alpha = 1, lasso
 plot(fit1, label = T)
+
 
 train.sub.scale <- train.sub
 train.sub.scale[, c(4,5,7,8,9,10)] <- scale(train.sub.scale[, c(4,5,7,8,9,10)])
@@ -81,7 +87,7 @@ plot(fit, xvar = "lambda", label = T)
 vnat=coef(fit) # why do we see two intercepts, one is from model.matrix, one is default added in glmnet
 vnat <- vnat[-c(1,2), ncol(vnat)] # remove the intercept, and get the coefficients at the end of the path
 # default is par(mar=c(5.1,4.1,4.1,2.1), bottom, lef, top, right
-par(mar = c(5.1,6,4.1,2.1))
+par(mar = c(5.1,6,4.1,2.1))  ###change size of y axis
 par(mfrow = c(1, 1))
 plot(fit, xvar = 'lambda', label = T, yaxt='n', ylab = "")
 axis(2, at=vnat,line=-.5,label = colnames(ind)[-1],las = 2, cex.axis=0.5)
@@ -115,6 +121,7 @@ sort(table(loan$loan_status))
 loan <- subset(loan, !loan_status %in% c('Current', 'Issued'))
 loan$loan_status_binary <- with(loan, ifelse(loan_status == 'Fully Paid', 1, 0))
 loan$log_annual_inc <- log(loan$annual_inc + 1)
+###table(loan_status_binary)
 train.ind <- sample(1:dim(loan)[1], 0.7 * dim(loan)[1])
 train.sub <- loan[train.ind, c('loan_status_binary', 'state_mean_int', 'home_ownership', 'log_annual_inc', 'dti',
                                'term', 'loan_amnt', 'total_acc', 'tot_cur_bal', 'open_acc')]
@@ -135,4 +142,3 @@ ind <- model.matrix( ~., ind)
 dep <- train.sub.scale[, 1]
 logis.cvfit <- cv.glmnet(ind, dep, family = 'binomial')
 plot(logis.cvfit)
-
